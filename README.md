@@ -1,55 +1,85 @@
 # Windows 98 IE5/6 HTTP Proxy
 
-A Flask-based proxy server designed to enable of modern HTTPS websites via Internet Explorer 5/6 on Windows 98 and other older operating system and browser combos. 
-This proxy handles SSL/TLS handshakes and serves content over HTTP, bypassing the encryption limitations of older browsers.
+A forward HTTP proxy server that enables Internet Explorer 5/6 on Windows 98
+to access modern websites. It handles SSL/TLS on the server side and serves
+content over plain HTTP to the browser, bypassing the encryption limitations
+of older browsers.
 
 ## Features
 
-- **HTTPS Forwarding:** Allows IE5/6 to access content served over HTTPS by handling the encryption/decryption process.
-- **Content Rewriting:** Modifies HTML content to ensure all resources (images, scripts, stylesheets) are loaded through the proxy (as much as possible, it's Internet Explorer 5, come on).
-- **User-Agent Forwarding:** Optionally forwards a modern User-Agent string to ensure compatibility (to a futile degree).
+- **Forward HTTP Proxy:** Configure directly in IE's proxy settings — no special URL format needed.
+- **SSL/TLS Handling:** Fetches HTTPS sites transparently and serves them over HTTP.
+- **Content Rewriting:** Rewrites `https://` URLs to `http://` in HTML, CSS, and JavaScript so IE stays on the proxy path.
+- **Multi-threaded:** Handles concurrent requests from the browser.
+- **User-Agent Spoofing:** Sends a modern User-Agent so upstream servers return usable content.
 
 ## Requirements
 
 - Python 3.6+
-- Flask
+- requests
 - BeautifulSoup4
-- Requests
-- A smile on your face
 
 ## Installation
 
 1. Clone the repository:
-`git clone https:/github.com/snacsnoc/windows98-ie-proxy.git`
+   ```
+   git clone https://github.com/startergo/windows98-ie-proxy.git
+   ```
 2. Navigate to the project directory:
-`cd windows98-ie-proxy`
+   ```
+   cd windows98-ie-proxy
+   ```
 3. Install dependencies:
-`pip install -r requirements.txt`
-
-
+   ```
+   pip install -r requirements.txt
+   ```
 
 ## Usage
 
-Run the Flask application:
+Run the proxy server:
 
-`python app.py`
-or
-`flask run --host=0.0.0.0 -p 80`
+```
+python app.py
+```
 
+The server listens on `0.0.0.0:8080` by default. You can change `LISTEN_PORT`
+in `app.py` or pass a custom port via the `PORT` environment variable.
 
-Access the proxy by visiting `http://<server-ip>/?url=<target-url>` from Internet Explorer 5/6 on your Windows 98 machine. 
-Replace `<server-ip>` with the IP address of the machine running the Flask application and `<target-url>` with the URL of the website you'd like to visit.
+### Configuring Internet Explorer
+
+1. Open **Tools → Internet Options → Connections → LAN Settings**.
+2. Check **Use a proxy server**.
+3. Set **Address** to the IP address of the machine running the proxy.
+4. Set **Port** to `8080` (or whichever port you configured).
+5. Click **Advanced** and ensure the proxy is set for **HTTP** only.
+   Leave the **Secure** (HTTPS) field empty.
+6. Click OK to save.
+
+### Browsing
+
+- Type URLs normally in the address bar using **http://**:
+  `http://example.com`
+- The proxy fetches the page over HTTPS automatically.
+- For sites that require HTTPS, still type `http://` — the proxy upgrades the connection.
 
 ## Configuration
 
-The application runs on port 80 by default. This can be configured in `app.py` by changing the `port` parameter in the `app.run()` method or changing the Flask runtime args.
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `LISTEN_HOST` | `0.0.0.0` | Interface to bind to |
+| `LISTEN_PORT` | `8080` | Port to listen on |
+
+Edit these constants at the top of `app.py`.
 
 ## Security Considerations
 
-This proxy is intended for demonstration use, such as running virtual machines. Please don't run this on a public server.
+This proxy is intended for demonstration and retro-computing use (e.g.,
+virtual machines). **Do not run it on a public server.** It performs no
+authentication and proxies any request it receives.
+
 ## Contributing
 
-Contributions are welcome. All IE 5/6 web developers are welcome. Please open an issue or submit a pull request with your improvements.
+Contributions are welcome. Please open an issue or submit a pull request.
 
 ## License
 
