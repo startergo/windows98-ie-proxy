@@ -29,12 +29,14 @@ USER_AGENT = (
 HOP_BY_HOP = {
     "host", "connection", "keep-alive", "proxy-connection",
     "proxy-authenticate", "proxy-authorization", "te", "trailers",
-    "transfer-encoding", "upgrade",
+    "transfer-encoding", "upgrade", "accept-encoding",
 }
 
 # Headers we skip when sending the response back
+# (requests auto-decompresses, so we must strip encoding headers)
 RESPONSE_SKIP = {
     "content-length", "transfer-encoding", "connection",
+    "content-encoding",
 }
 
 
@@ -61,7 +63,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self.send_error(
             502,
             "HTTPS proxy not supported. "
-            "Use http:// in the address bar — the proxy upgrades automatically.",
+            "Use http:// in the address bar - the proxy upgrades automatically.",
         )
 
     # ------------------------------------------------------------------
@@ -75,10 +77,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return
 
         # Build upstream request headers
-        headers = {"User-Agent": USER_AGENT}
+        # Forward client headers but always override User-Agent with a modern one
+        headers = {}
         for key, value in self.headers.items():
-            if key.lower() not in HOP_BY_HOP:
+            if key.lower() not in HOP_BY_HOP and key.lower() != "user-agent":
                 headers[key] = value
+        headers["User-Agent"] = USER_AGENT
 
         # Read request body (POST / PUT)
         content_length = int(self.headers.get("Content-Length", 0))
@@ -145,9 +149,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         _rewrite_soup(soup)
         return str(soup).encode("utf-8")
 
-    # Suppress default stderr logging
+    # Log requests for debugging
     def log_message(self, fmt, *args):
-        pass
+        print(f"[proxy] {args[0]}")
 
 
 # ======================================================================
@@ -193,13 +197,27 @@ def _rewrite_js(raw):
 # Entry point
 # ======================================================================
 
+def _get_lan_ip():
+    """Return the machine's LAN IP address for display purposes."""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "<this-machine-ip>"
+
+
 if __name__ == "__main__":
     server = ThreadedHTTPServer((LISTEN_HOST, LISTEN_PORT), ProxyHandler)
+    lan_ip = _get_lan_ip()
     print(f"Windows 98 IE Proxy running on {LISTEN_HOST}:{LISTEN_PORT}")
     print()
     print("Configure in IE:")
     print("  Tools > Internet Options > Connections > LAN Settings > Proxy Server")
-    print(f"  Address: <this-machine-ip>   Port: {LISTEN_PORT}")
+    print(f"  Address: {lan_ip}   Port: {LISTEN_PORT}")
     print()
     print("For HTTPS sites, type http:// in the address bar.")
     print("The proxy upgrades to HTTPS automatically.")
